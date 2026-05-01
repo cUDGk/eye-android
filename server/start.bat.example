@@ -1,0 +1,6 @@
+@echo off
+setlocal
+set TELEGRAM_BOT_TOKEN=YOUR_BOT_TOKEN_HERE
+set TELEGRAM_CHAT_ID=YOUR_CHAT_ID_HERE
+set LLAMA_URL=http://127.0.0.1:8080/v1/chat/completions
+"C:\path\to\python.exe" "%~dp0app.py" 1>"%~dp0server.out.log" 2>"%~dp0server.err.log"

@@ -1,0 +1,33 @@
+# Android build
+android/.gradle/
+android/build/
+android/app/build/
+android/.idea/
+android/local.properties
+android/captures/
+android/.cxx/
+*.iml
+*.apk
+*.aab
+
+# Secrets — bot token / chat id are NOT in version control
+android/app/src/main/java/com/example/factorycamerashell/Secrets.kt
+server/start.bat
+server/.env
+
+# Server runtime
+server/*.log
+server/server.out.log
+server/server.err.log
+server/__pycache__/
+server/*.pyc
+
+# Render intermediates
+chair_render/
+tools/__pycache__/
+
+# Editor / OS
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
