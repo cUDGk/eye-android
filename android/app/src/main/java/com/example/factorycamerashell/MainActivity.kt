@@ -2,11 +2,16 @@ package com.example.factorycamerashell
 
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.RingtoneManager
 import android.net.Uri
+import android.provider.MediaStore
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
@@ -114,6 +119,10 @@ private fun FactoryCameraApp() {
     ) { success ->
         if (success) {
             pendingImageUri?.let { uri ->
+                if (getSaveCaptured(context)) {
+                    runCatching { saveCaptureToGallery(context, uri) }
+                        .onFailure { Toast.makeText(context, "ギャラリー保存失敗: ${it.message}", Toast.LENGTH_SHORT).show() }
+                }
                 capturedImageUri = uri
                 capturedBitmap = loadPreviewBitmap(context, uri)
                 screen = Screen.Review
@@ -386,10 +395,11 @@ private fun FactoryButtonWithSubtitle(
 @Composable
 private fun SettingsScreen(onBack: () -> Unit) {
     BackHandler(onBack = onBack)
+    val context = LocalContext.current
 
     var autoFocus by remember { mutableStateOf(true) }
     var triggerMode by remember { mutableStateOf(false) }
-    var saveOriginal by remember { mutableStateOf(true) }
+    var saveOriginal by remember { mutableStateOf(getSaveCaptured(context)) }
     var showGrid by remember { mutableStateOf(false) }
     var beep by remember { mutableStateOf(true) }
     var exposure by remember { mutableFloatStateOf(42f) }
@@ -445,7 +455,14 @@ private fun SettingsScreen(onBack: () -> Unit) {
             }
             SettingSwitch(label = "\u30aa\u30fc\u30c8\u30d5\u30a9\u30fc\u30ab\u30b9", checked = autoFocus, onCheckedChange = { autoFocus = it })
             SettingSwitch(label = "\u5916\u90e8\u30c8\u30ea\u30ac\u30fc", checked = triggerMode, onCheckedChange = { triggerMode = it })
-            SettingSwitch(label = "\u539f\u753b\u50cf\u3092\u4fdd\u5b58", checked = saveOriginal, onCheckedChange = { saveOriginal = it })
+            SettingSwitch(
+                label = "\u64ae\u5f71\u753b\u50cf\u3092\u30ae\u30e3\u30e9\u30ea\u30fc\u4fdd\u5b58",
+                checked = saveOriginal,
+                onCheckedChange = {
+                    saveOriginal = it
+                    setSaveCaptured(context, it)
+                }
+            )
             SettingSwitch(label = "\u30ac\u30a4\u30c9\u7dda\u8868\u793a", checked = showGrid, onCheckedChange = { showGrid = it })
             SettingSwitch(label = "\u64ae\u5f71\u97f3", checked = beep, onCheckedChange = { beep = it })
             SettingSlider(label = "\u9732\u5149", value = exposure, onValueChange = { exposure = it }, suffix = "ms")
@@ -457,7 +474,8 @@ private fun SettingsScreen(onBack: () -> Unit) {
                 SmallActionButton(text = "\u521d\u671f\u5316", onClick = {
                     autoFocus = true
                     triggerMode = false
-                    saveOriginal = true
+                    saveOriginal = false
+                    setSaveCaptured(context, false)
                     showGrid = false
                     beep = true
                     exposure = 42f
@@ -692,6 +710,7 @@ private fun SuccessScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Spacer(modifier = Modifier.height(96.dp))
         Column(
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
@@ -948,6 +967,41 @@ private fun vibrate(context: Context, pattern: LongArray) {
 private fun copyToClipboard(context: Context, text: String) {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     clipboard.setPrimaryClip(ClipData.newPlainText("error_code", text))
+}
+
+private const val PREFS_NAME = "eye_settings"
+private const val KEY_SAVE_CAPTURED = "save_captured"
+
+private fun getSaveCaptured(context: Context): Boolean =
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .getBoolean(KEY_SAVE_CAPTURED, false)
+
+private fun setSaveCaptured(context: Context, value: Boolean) {
+    context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        .edit()
+        .putBoolean(KEY_SAVE_CAPTURED, value)
+        .apply()
+}
+
+private fun saveCaptureToGallery(context: Context, sourceUri: Uri) {
+    val resolver = context.contentResolver
+    val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+    val values = ContentValues().apply {
+        put(MediaStore.Images.Media.DISPLAY_NAME, "Eye_$timestamp.jpg")
+        put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Eye")
+        }
+    }
+    val target = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+        ?: error("MediaStore.insert returned null")
+    resolver.openOutputStream(target).use { out ->
+        requireNotNull(out) { "Cannot open output for $target" }
+        resolver.openInputStream(sourceUri).use { input ->
+            requireNotNull(input) { "Cannot open input for $sourceUri" }
+            input.copyTo(out)
+        }
+    }
 }
 
 private fun createCaptureUri(context: Context): Uri {
