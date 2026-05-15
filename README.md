@@ -4,7 +4,7 @@
 
 ### スマホをLLMの目にするAndroidアプリ + FastAPIプロキシ
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF?style=flat&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-1.9-7F52FF?style=flat&logo=kotlin&logoColor=white)](https://kotlinlang.org/)
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Qwen3-VL](https://img.shields.io/badge/Qwen3--VL-30B--A3B-FF6F00?style=flat)](https://huggingface.co/unsloth/Qwen3-VL-30B-A3B-Instruct-GGUF)
